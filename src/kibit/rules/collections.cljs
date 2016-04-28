@@ -1,5 +1,6 @@
 (ns kibit.rules.collections
-  (:use [kibit.rules.util :only [defrules]]))
+  (:require [kibit.rules.util])
+  (:require-macros [kibit.rules.macros :refer [defrules]]))
 
 (defrules rules
   ;;vector

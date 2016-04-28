@@ -1,8 +1,9 @@
 (ns kibit.core
   "Kibit's core functionality uses core.logic to construct idiomatic
-   replacements/simplifications for patterns of code."
+  replacements/simplifications for patterns of code."
   (:require [clojure.walk :as walk]
-            [clojure.core.logic :as logic]))
+            [cljs.core.logic :as logic])
+  (:require-macros [cljs.core.logic.macros :as logic-m]))
 
 ;; ### Important notes
 ;; Feel free to contribute rules to [kibit's github repo](https://github.com/jonase/kibit)
@@ -16,12 +17,12 @@
 ;; apply the original expression is returned. Does not look at
 ;; subforms.
 (defn simplify-one [expr rules]
-  (let [alts (logic/run* [q]
-               (logic/fresh [pat subst]
-                 (logic/membero [pat subst] rules)
-                 (logic/project [pat subst]
-                   (logic/all (pat expr)
-                              (subst q)))))]
+  (let [alts (logic-m/run* [q]
+                           (logic-m/fresh [pat subst]
+                                          (logic/membero [pat subst] rules)
+                                          (logic-m/project [pat subst]
+                                                           (logic-m/all (pat expr)
+                                                                        (subst q)))))]
     (if (empty? alts) expr (first alts))))
 
 ;; Simplifies expr according to the rules until no more rules apply.

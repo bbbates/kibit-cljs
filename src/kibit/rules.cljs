@@ -1,5 +1,5 @@
 (ns kibit.rules
-  "`rules.clj` provides the core functionality for extracting
+  "`rules.cljs` provides the core functionality for extracting
   and merging rules from namespaces.  There are shorthands for
   the individual rule sets, via the `rule-map`"
   (:require [kibit.rules.arithmetic :as arith]

@@ -1,19 +1,16 @@
 (ns kibit.check
   "Kibit's integration point and public API"
-  (:require [clojure.java.io :as io]
-            [clojure.core.logic.unifier :as unifier]
+  (:require [cljs.core.logic :as logic]
             [kibit.core :as core]
             [kibit.rules :as core-rules]
-            [kibit.reporters :as reporters])
-  (:import [clojure.lang LineNumberingPushbackReader]))
+            [kibit.reporters :as reporters]))
 
 ;; ### Overview
 ;; The public API for Kibit is through the `check-*` functions below.
 ;;
 ;;  * `check-expr` - for checking single expressions (great on the REPL)
-;;  * `check-reader` - for checking all forms passed in via a `PushbackReader`
-;;  * `check-file` - for checking any file, or string/URI/URL for a file
-;;
+;; For the cljs port, only check-expr is available.
+
 ;; All other functions in this namespace exist to provide support and ease
 ;; of use for integrated Kibit into other technologies.
 
@@ -32,45 +29,6 @@
 
 ;; Reading source files
 ;; --------------------
-;; ### Extracting forms
-
-;; `read-file` is intended to be used with a Clojure source file,
-;; read in by Clojure's LineNumberingPushbackReader *(LNPR)*. Expressions are
-;; extracted using the clojure reader (ala `read`), and line numbers
-;; are added as `:line` metadata to the forms (via LNPR).
-
-(defn- careful-refer
-  "Refers into the provided namespace all public vars from clojure.core
-except for those that would clobber any existing interned vars in that
-namespace.  This is needed to ensure that symbols read within syntax-quote
-end up being fully-qualified to clojure.core as appropriate, and only
-to *ns* if they're not available there.  AFAICT, this will work for all
-symbols in syntax-quote except for those referring to vars that are referred
-into the namespace."
-  [ns]
-  (binding [*ns* ns]
-    (refer 'clojure.core :exclude (or (keys (ns-interns ns)) ())))
-  ns)
-
-(def eof (Object.))
-
-(defn read-file
-  "Generate a lazy sequence of top level forms from a
-   LineNumberingPushbackReader"
-  [^LineNumberingPushbackReader r init-ns]
-  (let [do-read (fn do-read [ns]
-                  (lazy-seq
-                    (let [form (binding [*ns* ns]
-                                 (read r false eof))
-                          [ns? new-ns k] (when (sequential? form) form)
-                          ns (if (and (symbol? new-ns)
-                                      (or (= ns? 'ns) (= ns? 'in-ns)))
-                               (careful-refer (create-ns new-ns))
-                               ns)]
-                      (when-not (= form eof)
-                        (cons form (do-read ns))))))]
-    (do-read (careful-refer (create-ns init-ns)))))
-
 ;; ### Analyzing the pieces
 
 ;; `tree-seq` returns a lazy-seq of nodes for a tree.
@@ -156,11 +114,6 @@ into the namespace."
   {:toplevel core/simplify
    :subform  core/simplify-one})
 
-(def ^:private res->read-seq
-  {:toplevel (fn [reader init-ns]
-               (read-file (LineNumberingPushbackReader. reader) init-ns))
-   :subform  (fn [reader init-ns]
-               (mapcat expr-seq (read-file (LineNumberingPushbackReader. reader) init-ns)))})
 
 ;; Checking the expressions
 ;; ------------------------
@@ -205,39 +158,7 @@ into the namespace."
         (merge default-args
                {:resolution :toplevel}
                (apply hash-map kw-opts))
-        rules (map unifier/prep rules)
+        rules (map logic/prep rules)
         simplify-fn #((res->simplify resolution) % rules)]
     (check-aux expr simplify-fn guard)))
 
-(defn check-reader
-  ""
-  [reader & kw-opts]
-  (let [{:keys [rules guard resolution init-ns]}
-        (merge default-args
-               (apply hash-map kw-opts))
-        rules (map unifier/prep rules)
-        simplify-fn #((res->simplify resolution) % rules)]
-    (keep #(check-aux % simplify-fn guard)
-          ((res->read-seq resolution) reader init-ns))))
-
-(def ^:private default-data-reader-binding
-  (when (resolve '*default-data-reader-fn*)
-    {(resolve '*default-data-reader-fn*) (fn [tag val] val)}))
-
-(defn check-file
-  ""
-  [source-file & kw-opts]
-  (let [{:keys [rules guard resolution reporter init-ns]
-         :or   {reporter reporters/cli-reporter}}
-        (merge default-args
-               (apply hash-map kw-opts))]
-    (with-open [reader (io/reader source-file)]
-      (with-bindings default-data-reader-binding
-        (doall (map (fn [simplify-map]
-                      (do (reporter (assoc simplify-map :file source-file))
-                          simplify-map))
-                    (check-reader reader
-                                  :rules rules
-                                  :guard guard
-                                  :resolution resolution
-                                  :init-ns init-ns)))))))
