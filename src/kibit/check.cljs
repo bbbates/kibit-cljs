@@ -2,8 +2,7 @@
   "Kibit's integration point and public API"
   (:require [cljs.core.logic :as logic]
             [kibit.core :as core]
-            [kibit.rules :as core-rules]
-            [kibit.reporters :as reporters]))
+            [kibit.rules :as core-rules]))
 
 ;; ### Overview
 ;; The public API for Kibit is through the `check-*` functions below.
