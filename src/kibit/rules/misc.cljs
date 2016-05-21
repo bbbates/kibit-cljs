@@ -1,8 +1,14 @@
 (ns kibit.rules.misc
   (:require [cljs.core.logic :as logic]
+            [clojure.string :refer [upper-case blank?]]
             [kibit.rules.util])
   (:require-macros [kibit.rules.macros :refer [defrules]]
                    [cljs.core.logic.macros :as logic-m]))
+
+(defn- is-upper-case?
+  [c]
+  (when-not (blank? c)
+    (= (upper-case c) c)))
 
 ;; Returns true if symbol is of
 ;; form Foo or foo.bar.Baz
@@ -10,8 +16,8 @@
   (let [sym (pr-str sym)
         idx (.lastIndexOf sym ".")]
     (if (neg? idx)
-      (Character/isUpperCase (first sym))
-      (Character/isUpperCase (nth sym (inc idx))))))
+      (is-upper-case? (first sym))
+      (is-upper-case? (nth sym (inc idx))))))
 
 (defrules rules
   ;; clojure.string

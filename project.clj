@@ -1,4 +1,4 @@
-(defproject kibit-cljs "0.1.0"
+(defproject kibit-cljs "0.1.1"
   :description "Clojurescript port of https://github.com/jonase/kibit"
   :url "https://github.com/bbbates/kibit-cljs"
   :license {:name "Eclipse Public License - v 1.0"

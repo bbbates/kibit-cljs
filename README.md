@@ -11,7 +11,7 @@ Note the very old version of Clojurescript being used. The first use I had for t
 
 In leiningen:
 
-```[kibit-cljs "0.1.0-SNAPSHOT"]```
+```[kibit-cljs "0.1.0"]```
 
 ```
 (require '[kibit.check :as kibit])
